@@ -1,2 +1,3 @@
-# diaghub
-loads a custom dll in system32
+# Diaghub
+
+Loads a custom dll in system32 via diaghub.

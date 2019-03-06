@@ -78,7 +78,7 @@ int main()
 		StringFromIID(name, &name_str);
 
 		WCHAR valid_dir[] = L"C:\\programdata\\";
-		WCHAR targetDll[] = L"license.rtf";
+		WCHAR target_dll[] = L"license.rtf";
 
 		IStandardCollectorServicePtr service;
 		ThrowOnError(CoCreateInstance(CLSID_CollectorService, nullptr, CLSCTX_LOCAL_SERVER, IID_PPV_ARGS(&service)));
@@ -103,7 +103,7 @@ int main()
 		ThrowOnError(service->CreateSession(&config, nullptr, &session));
 		GUID agent_guid;
 		CoCreateGuid(&agent_guid);
-		ThrowOnError(session->AddAgent(targetDll, agent_guid));
+		ThrowOnError(session->AddAgent(target_dll, agent_guid));
 	}
 	catch (const _com_error& error)
 	{

